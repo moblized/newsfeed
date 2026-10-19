@@ -15,10 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 private val Paper = lightColorScheme(
-    primary = Color(0xFFA4282A),
+    primary = Color(0xFF7A5900),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFFFDAD7),
-    onPrimaryContainer = Color(0xFF410006),
+    primaryContainer = Color(0xFFFFDEA6),
+    onPrimaryContainer = Color(0xFF261900),
     secondary = Color(0xFF5E5C55),
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFE6E1D6),
@@ -41,10 +41,10 @@ private val Paper = lightColorScheme(
 )
 
 private val Ink = darkColorScheme(
-    primary = Color(0xFFFFB3AD),
-    onPrimary = Color(0xFF68000F),
-    primaryContainer = Color(0xFF85141C),
-    onPrimaryContainer = Color(0xFFFFDAD7),
+    primary = Color(0xFFF2BF48),
+    onPrimary = Color(0xFF402D00),
+    primaryContainer = Color(0xFF5C4200),
+    onPrimaryContainer = Color(0xFFFFDEA6),
     secondary = Color(0xFFCAC6BC),
     onSecondary = Color(0xFF32302A),
     secondaryContainer = Color(0xFF484640),

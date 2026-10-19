@@ -1,13 +1,16 @@
 # NewsFeed
 
-A free, ad-free news reader for Android. Built with Kotlin and Jetpack Compose.
+A free, ad-free news reader for Android with Ground News–style bias tools. Built with Kotlin and Jetpack Compose.
 
-- **Today** — one feed from 30+ free publisher feeds (BBC, NPR, The Guardian, Al Jazeera, The Verge, Ars Technica, ESPN and more), filterable by topic
-- **Search** — any topic across Google News plus the stories already in your feed
-- **Saved** — bookmark stories to read later
-- **Sources** — switch sources on/off, add any site or RSS link, pick System/Light/Dark theme
+- **Today**: stories grouped across outlets, each with a Left / Center / Right coverage bar and source count
+- **Story view**: every outlet's headline on the story, filterable by Left, Center or Right, with each outlet's bias rating
+- **Blindspot**: stories one side of the spectrum is barely covering
+- **Daily Brief**: weather for your city (Open-Meteo), plus Global Conflict and Space & Physics briefings with sources. Sections are editable.
+- **DeArrow-style headlines**: strips clickbait framing and picks the plainest headline when several outlets cover a story (toggle in settings)
+- **Your news bias**: which way the articles you open lean
+- **Search**, **Saved**, and **Sources & settings** (add any site or RSS feed, change any outlet's rating)
 
-No accounts, no API keys, no tracking. Stories open in an in-app browser tab.
+Bias ratings follow AllSides media bias ratings at the outlet level. No accounts, no API keys, no tracking.
 
 ## Install
 

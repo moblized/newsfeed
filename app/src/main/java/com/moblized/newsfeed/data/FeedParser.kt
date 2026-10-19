@@ -27,8 +27,9 @@ object FeedParser {
         val out = ArrayList<Article>()
         var item: ItemBuilder? = null
         var event = parser.eventType
+        var mainCount = 0
 
-        while (event != XmlPullParser.END_DOCUMENT && out.size < limit) {
+        while (event != XmlPullParser.END_DOCUMENT && mainCount < limit) {
             if (event == XmlPullParser.START_TAG) {
                 val name = parser.name.lowercase(Locale.ROOT)
                 val cur = item
@@ -45,7 +46,11 @@ object FeedParser {
                 val name = parser.name.lowercase(Locale.ROOT)
                 val cur = item
                 if ((name == "item" || name == "entry") && cur != null) {
-                    cur.build(source)?.let { out.add(it) }
+                    val built = cur.build(source)
+                    if (built.isNotEmpty()) {
+                        out.addAll(built)
+                        mainCount++
+                    }
                     item = null
                 }
             }
@@ -102,7 +107,10 @@ object FeedParser {
                 }
             }
             "itunes:image" -> parser.getAttributeValue(null, "href")?.let { cur.offerImage(it, 0) }
-            "source" -> cur.publisher = readText(parser).trim()
+            "source" -> {
+                cur.publisherUrl = parser.getAttributeValue(null, "url")
+                cur.publisher = readText(parser).trim()
+            }
         }
     }
 
@@ -137,6 +145,7 @@ object FeedParser {
         var content: String? = null
         var date: String? = null
         var publisher: String? = null
+        var publisherUrl: String? = null
         private var image: String? = null
         private var imageWidth = -1
 
@@ -148,13 +157,14 @@ object FeedParser {
             }
         }
 
-        fun build(source: Source): Article? {
+        /** The item itself, followed by any related coverage Google News lists under it. */
+        fun build(source: Source): List<Article> {
             val url = link?.trim()?.takeIf { it.startsWith("http") }
                 ?: guid?.trim()?.takeIf { it.startsWith("http") }
-                ?: return null
+                ?: return emptyList()
 
             var cleanTitle = FeedParser.clean(title ?: "")
-            if (cleanTitle.isBlank()) return null
+            if (cleanTitle.isBlank()) return emptyList()
 
             val pub = publisher?.let { FeedParser.clean(it) }?.takeIf { it.isNotBlank() && it.length <= 60 }
             if (pub != null && cleanTitle.endsWith(" - $pub")) {
@@ -169,7 +179,8 @@ object FeedParser {
             val rawSummary = summary?.takeIf { it.isNotBlank() } ?: content ?: ""
             var text = FeedParser.clean(rawSummary)
             val host = runCatching { URL(url).host }.getOrDefault("")
-            if (host.contains("news.google.") ||
+            val isGoogle = host.contains("news.google.")
+            if (isGoogle ||
                 text.startsWith("Article URL:") ||
                 text.equals(cleanTitle, ignoreCase = true)
             ) {
@@ -177,7 +188,8 @@ object FeedParser {
             }
             if (text.length > 280) text = text.take(277).trimEnd() + "…"
 
-            return Article(
+            val time = FeedParser.parseDate(date)
+            val main = Article(
                 id = url,
                 title = cleanTitle,
                 link = url,
@@ -186,9 +198,45 @@ object FeedParser {
                 sourceName = pub ?: source.name,
                 sourceId = source.id,
                 category = source.category,
-                publishedAt = FeedParser.parseDate(date),
+                publishedAt = time,
+                publisherUrl = publisherUrl?.trim()?.takeIf { it.startsWith("http") },
+            )
+            if (!isGoogle) return listOf(main)
+            return listOf(main) + FeedParser.relatedCoverage(summary, main)
+        }
+    }
+
+    // ---- Google News clusters ------------------------------------------------------------
+
+    private val liRe = Regex("(?is)<li[^>]*>(.*?)</li>")
+    private val anchorRe = Regex("(?is)<a[^>]+href\\s*=\\s*[\"']([^\"']+)[\"'][^>]*>(.*?)</a>")
+    private val fontRe = Regex("(?is)<font[^>]*>(.*?)</font>")
+
+    /** Google News lists other outlets' versions of the same story inside the item description. */
+    private fun relatedCoverage(rawDescription: String?, main: Article): List<Article> {
+        if (rawDescription.isNullOrBlank() || !rawDescription.contains("<li", ignoreCase = true)) return emptyList()
+        val out = ArrayList<Article>()
+        for (li in liRe.findAll(rawDescription)) {
+            val body = li.groupValues[1]
+            val a = anchorRe.find(body) ?: continue
+            val publisher = fontRe.find(body)?.groupValues?.get(1)?.let { clean(it) }?.takeIf { it.isNotBlank() } ?: continue
+            val link = a.groupValues[1].replace("&amp;", "&").trim()
+            val title = clean(a.groupValues[2])
+            if (!link.startsWith("http") || link == main.link || title.isBlank()) continue
+            out.add(
+                main.copy(
+                    id = link,
+                    title = title,
+                    link = link,
+                    summary = "",
+                    imageUrl = null,
+                    sourceName = publisher,
+                    publisherUrl = null,
+                    groupKey = main.id,
+                )
             )
         }
+        return out
     }
 
     // ---- helpers -------------------------------------------------------------------------

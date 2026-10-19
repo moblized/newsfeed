@@ -6,6 +6,7 @@ enum class Category(val label: String) {
     TOP("Top stories"),
     WORLD("World"),
     US("U.S."),
+    POLITICS("Politics"),
     BUSINESS("Business"),
     TECH("Tech"),
     SCIENCE("Science"),
@@ -54,6 +55,10 @@ data class Article(
     val sourceId: String,
     val category: Category,
     val publishedAt: Long,
+    /** Publisher home page (Google News gives this for every item). */
+    val publisherUrl: String? = null,
+    /** Articles sharing a groupKey (or whose groupKey is another article's id) are the same story. */
+    val groupKey: String? = null,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("id", id)
@@ -65,6 +70,8 @@ data class Article(
         .put("sourceId", sourceId)
         .put("category", category.name)
         .put("time", publishedAt)
+        .put("pubUrl", publisherUrl ?: "")
+        .put("group", groupKey ?: "")
 
     companion object {
         fun fromJson(o: JSONObject) = Article(
@@ -77,6 +84,8 @@ data class Article(
             sourceId = o.optString("sourceId"),
             category = Category.fromName(o.optString("category")),
             publishedAt = o.optLong("time"),
+            publisherUrl = o.optString("pubUrl").ifBlank { null },
+            groupKey = o.optString("group").ifBlank { null },
         )
     }
 }

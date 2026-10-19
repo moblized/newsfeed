@@ -41,6 +41,57 @@ class Storage(context: Context) {
     fun openInApp(): Boolean = prefs.getBoolean(KEY_IN_APP, true)
     fun setOpenInApp(on: Boolean) = prefs.edit().putBoolean(KEY_IN_APP, on).apply()
 
+    fun declickbait(): Boolean = prefs.getBoolean(KEY_DECLICKBAIT, true)
+    fun setDeclickbait(on: Boolean) = prefs.edit().putBoolean(KEY_DECLICKBAIT, on).apply()
+
+    // ---- bias ----
+    fun biasOverrides(): Map<String, String> = runCatching {
+        val o = JSONObject(prefs.getString(KEY_BIAS_OVERRIDES, null) ?: "{}")
+        o.keys().asSequence().associateWith { o.getString(it) }
+    }.getOrDefault(emptyMap())
+
+    fun setBiasOverrides(map: Map<String, String>) {
+        val o = JSONObject()
+        map.forEach { (k, v) -> o.put(k, v) }
+        prefs.edit().putString(KEY_BIAS_OVERRIDES, o.toString()).apply()
+    }
+
+    fun readBias(): Map<Side, Int> = Side.entries.associateWith { prefs.getInt(KEY_READ_BIAS + it.name, 0) }
+
+    fun setReadBias(map: Map<Side, Int>) {
+        val e = prefs.edit()
+        Side.entries.forEach { e.putInt(KEY_READ_BIAS + it.name, map[it] ?: 0) }
+        e.apply()
+    }
+
+    // ---- daily brief ----
+    fun place(): Place? = runCatching {
+        prefs.getString(KEY_PLACE, null)?.let { Place.fromJson(JSONObject(it)) }
+    }.getOrNull()
+
+    fun setPlace(place: Place?) {
+        prefs.edit().putString(KEY_PLACE, place?.toJson()?.toString()).apply()
+    }
+
+    fun fahrenheit(): Boolean = prefs.getBoolean(
+        KEY_FAHRENHEIT,
+        java.util.Locale.getDefault().country in setOf("US", "LR", "MM", "BS", "BZ", "KY", "PW"),
+    )
+
+    fun setFahrenheit(on: Boolean) = prefs.edit().putBoolean(KEY_FAHRENHEIT, on).apply()
+
+    fun briefTopics(): List<BriefTopic> = runCatching {
+        val raw = prefs.getString(KEY_TOPICS, null) ?: return Briefing.defaultTopics
+        val arr = JSONArray(raw)
+        (0 until arr.length()).map { BriefTopic.fromJson(arr.getJSONObject(it)) }
+    }.getOrDefault(Briefing.defaultTopics)
+
+    fun setBriefTopics(list: List<BriefTopic>) {
+        val arr = JSONArray()
+        list.forEach { arr.put(it.toJson()) }
+        prefs.edit().putString(KEY_TOPICS, arr.toString()).apply()
+    }
+
     // ---- read stories ----
     fun readIds(): LinkedHashSet<String> = runCatching {
         val arr = JSONArray(prefs.getString(KEY_READ, null) ?: "[]")
@@ -93,5 +144,11 @@ class Storage(context: Context) {
         const val KEY_DYNAMIC = "dynamic_color"
         const val KEY_IN_APP = "open_in_app"
         const val KEY_READ = "read_ids"
+        const val KEY_DECLICKBAIT = "declickbait"
+        const val KEY_BIAS_OVERRIDES = "bias_overrides"
+        const val KEY_READ_BIAS = "read_bias_"
+        const val KEY_PLACE = "weather_place"
+        const val KEY_FAHRENHEIT = "fahrenheit"
+        const val KEY_TOPICS = "brief_topics"
     }
 }
